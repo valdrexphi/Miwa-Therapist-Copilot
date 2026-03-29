@@ -49,11 +49,18 @@ export type CopilotFormData = {
   sessionNotes: string;
 };
 
+export type ICD10Code = {
+  code: string;
+  description: string;
+  rationale: string;
+};
+
 export type DiagnosticConsideration = {
   diagnosis_to_consider: string;
   supported_by: string[];
   missing_information: string[];
   rule_out_or_competing_considerations: string[];
+  icd10_codes: ICD10Code[];
 };
 
 export type DraftCopilotApiResponse = {
@@ -97,20 +104,31 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function isICD10Code(value: unknown): value is ICD10Code {
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
+  return (
+    typeof c.code === "string" &&
+    typeof c.description === "string" &&
+    typeof c.rationale === "string"
+  );
+}
+
+function isICD10CodeArray(value: unknown): value is ICD10Code[] {
+  return Array.isArray(value) && value.every(isICD10Code);
+}
+
 function isDiagnosticConsideration(
   value: unknown
 ): value is DiagnosticConsideration {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
   return (
-    typeof candidate.diagnosis_to_consider === "string" &&
-    isStringArray(candidate.supported_by) &&
-    isStringArray(candidate.missing_information) &&
-    isStringArray(candidate.rule_out_or_competing_considerations)
+    typeof c.diagnosis_to_consider === "string" &&
+    isStringArray(c.supported_by) &&
+    isStringArray(c.missing_information) &&
+    isStringArray(c.rule_out_or_competing_considerations) &&
+    isICD10CodeArray(c.icd10_codes)
   );
 }
 
@@ -123,41 +141,33 @@ function isDiagnosticConsiderationArray(
 export function isDraftCopilotApiResponse(
   value: unknown
 ): value is DraftCopilotApiResponse {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
   return (
-    typeof candidate.birp_note === "string" &&
-    isStringArray(candidate.interventions) &&
-    isStringArray(candidate.supervision_questions) &&
-    isStringArray(candidate.compliance_flags) &&
-    isStringArray(candidate.next_session_focus) &&
-    typeof candidate.clinical_hypothesis === "string" &&
-    isDiagnosticConsiderationArray(candidate.diagnostic_considerations) &&
-    isStringArray(candidate.clarifying_questions)
+    typeof c.birp_note === "string" &&
+    isStringArray(c.interventions) &&
+    isStringArray(c.supervision_questions) &&
+    isStringArray(c.compliance_flags) &&
+    isStringArray(c.next_session_focus) &&
+    typeof c.clinical_hypothesis === "string" &&
+    isDiagnosticConsiderationArray(c.diagnostic_considerations) &&
+    isStringArray(c.clarifying_questions)
   );
 }
 
 export function isEditingCopilotApiResponse(
   value: unknown
 ): value is EditingCopilotApiResponse {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
   return (
-    typeof candidate.revised_note === "string" &&
-    isStringArray(candidate.wording_suggestions) &&
-    isStringArray(candidate.rationale_for_edits) &&
-    isStringArray(candidate.supervision_questions) &&
-    isStringArray(candidate.compliance_flags) &&
-    isDiagnosticConsiderationArray(candidate.diagnostic_considerations) &&
-    isStringArray(candidate.clarifying_questions)
+    typeof c.revised_note === "string" &&
+    isStringArray(c.wording_suggestions) &&
+    isStringArray(c.rationale_for_edits) &&
+    isStringArray(c.supervision_questions) &&
+    isStringArray(c.compliance_flags) &&
+    isDiagnosticConsiderationArray(c.diagnostic_considerations) &&
+    isStringArray(c.clarifying_questions)
   );
 }
 
@@ -171,67 +181,28 @@ export function isCopilotApiResponse(
 }
 
 export function isCopilotApiError(value: unknown): value is CopilotApiError {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-
-  return typeof candidate.error === "string";
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
+  return typeof c.error === "string";
 }
 
 export function isCopilotPartialApiResponse(
   value: unknown
 ): value is CopilotPartialApiResponse {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-
-  const birpNoteValid =
-    candidate.birp_note === undefined || typeof candidate.birp_note === "string";
-  const interventionsValid =
-    candidate.interventions === undefined || isStringArray(candidate.interventions);
-  const supervisionQuestionsValid =
-    candidate.supervision_questions === undefined ||
-    isStringArray(candidate.supervision_questions);
-  const complianceFlagsValid =
-    candidate.compliance_flags === undefined ||
-    isStringArray(candidate.compliance_flags);
-  const nextSessionFocusValid =
-    candidate.next_session_focus === undefined ||
-    isStringArray(candidate.next_session_focus);
-  const clinicalHypothesisValid =
-    candidate.clinical_hypothesis === undefined ||
-    typeof candidate.clinical_hypothesis === "string";
-  const revisedNoteValid =
-    candidate.revised_note === undefined ||
-    typeof candidate.revised_note === "string";
-  const wordingSuggestionsValid =
-    candidate.wording_suggestions === undefined ||
-    isStringArray(candidate.wording_suggestions);
-  const rationaleForEditsValid =
-    candidate.rationale_for_edits === undefined ||
-    isStringArray(candidate.rationale_for_edits);
-  const diagnosticConsiderationsValid =
-    candidate.diagnostic_considerations === undefined ||
-    isDiagnosticConsiderationArray(candidate.diagnostic_considerations);
-  const clarifyingQuestionsValid =
-    candidate.clarifying_questions === undefined ||
-    isStringArray(candidate.clarifying_questions);
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
 
   return (
-    birpNoteValid &&
-    interventionsValid &&
-    supervisionQuestionsValid &&
-    complianceFlagsValid &&
-    nextSessionFocusValid &&
-    clinicalHypothesisValid &&
-    revisedNoteValid &&
-    wordingSuggestionsValid &&
-    rationaleForEditsValid &&
-    diagnosticConsiderationsValid &&
-    clarifyingQuestionsValid
+    (c.birp_note === undefined || typeof c.birp_note === "string") &&
+    (c.interventions === undefined || isStringArray(c.interventions)) &&
+    (c.supervision_questions === undefined || isStringArray(c.supervision_questions)) &&
+    (c.compliance_flags === undefined || isStringArray(c.compliance_flags)) &&
+    (c.next_session_focus === undefined || isStringArray(c.next_session_focus)) &&
+    (c.clinical_hypothesis === undefined || typeof c.clinical_hypothesis === "string") &&
+    (c.revised_note === undefined || typeof c.revised_note === "string") &&
+    (c.wording_suggestions === undefined || isStringArray(c.wording_suggestions)) &&
+    (c.rationale_for_edits === undefined || isStringArray(c.rationale_for_edits)) &&
+    (c.diagnostic_considerations === undefined || isDiagnosticConsiderationArray(c.diagnostic_considerations)) &&
+    (c.clarifying_questions === undefined || isStringArray(c.clarifying_questions))
   );
 }
