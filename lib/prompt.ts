@@ -1,4 +1,4 @@
-import type { CopilotFormData, RegenerateTarget } from "@/lib/types";
+import type { CopilotFormData, CopilotGenerateRequest, RegenerateTarget, UploadedContext } from "@/lib/types";
 
 export const systemPrompt = `
 You are an AI clinical copilot for therapists and trainees only.
@@ -58,7 +58,11 @@ function getOrientationInstruction(orientation: string): string {
   return orientationInstructions[orientation] ?? "Apply an integrative lens informed by the stated orientation.";
 }
 
-function buildSharedContext(input: CopilotFormData) {
+function buildSharedContext(input: CopilotFormData, uploadedContext?: UploadedContext) {
+  const docSection = uploadedContext?.text
+    ? `\n\nUploaded assessment document (${uploadedContext.filename}):\n${uploadedContext.text}`
+    : "";
+
   return `
 Case type: ${input.caseType}
 Note format: ${input.noteFormat}
@@ -68,7 +72,7 @@ Orientation guidance: ${getOrientationInstruction(input.orientation)}
 Presenting problem: ${input.presentingProblem}
 Treatment goal: ${input.treatmentGoal}
 Session bullet notes:
-${input.sessionNotes}
+${input.sessionNotes}${docSection}
   `.trim();
 }
 
@@ -256,11 +260,11 @@ export const editingResponseSchema = {
 
 // --- User prompts ---
 
-function buildDraftModePrompt(input: CopilotFormData): string {
+function buildDraftModePrompt(input: CopilotFormData, uploadedContext?: UploadedContext): string {
   return `
 Generate structured JSON for a therapist-facing clinical copilot.
 
-${buildSharedContext(input)}
+${buildSharedContext(input, uploadedContext)}
 
 Return JSON matching the provided schema exactly.
 
@@ -301,11 +305,11 @@ Clarifying questions:
 `.trim();
 }
 
-function buildEditingModePrompt(input: CopilotFormData): string {
+function buildEditingModePrompt(input: CopilotFormData, uploadedContext?: UploadedContext): string {
   return `
 Generate structured JSON for a therapist-facing clinical copilot in Editing Mode.
 
-${buildSharedContext(input)}
+${buildSharedContext(input, uploadedContext)}
 
 Return JSON matching the provided schema exactly.
 
@@ -338,19 +342,20 @@ Clarifying questions:
 `.trim();
 }
 
-export function buildUserPrompt(input: CopilotFormData): string {
+export function buildUserPrompt(input: CopilotGenerateRequest): string {
   return input.outputMode === "editing"
-    ? buildEditingModePrompt(input)
-    : buildDraftModePrompt(input);
+    ? buildEditingModePrompt(input, input.uploadedContext)
+    : buildDraftModePrompt(input, input.uploadedContext);
 }
 
 // --- Regeneration prompts ---
 
 function buildDraftRegenerationPrompt(
   input: CopilotFormData,
-  target: RegenerateTarget
+  target: RegenerateTarget,
+  uploadedContext?: UploadedContext
 ): string {
-  const ctx = buildSharedContext(input);
+  const ctx = buildSharedContext(input, uploadedContext);
 
   const specs: Partial<Record<RegenerateTarget, string>> = {
     birp_note: `Regenerate only the note section (birp_note key).
@@ -399,9 +404,10 @@ Return JSON with only the relevant key. Do not invent facts.`.trim();
 
 function buildEditingRegenerationPrompt(
   input: CopilotFormData,
-  target: RegenerateTarget
+  target: RegenerateTarget,
+  uploadedContext?: UploadedContext
 ): string {
-  const ctx = buildSharedContext(input);
+  const ctx = buildSharedContext(input, uploadedContext);
 
   const specs: Partial<Record<RegenerateTarget, string>> = {
     revised_note: `Regenerate only the revised note (revised_note key).
@@ -441,12 +447,12 @@ Return JSON with only the relevant key. Do not invent facts.`.trim();
 }
 
 export function buildRegenerationPrompt(
-  input: CopilotFormData,
+  input: CopilotGenerateRequest,
   target: RegenerateTarget
 ): string {
   return input.outputMode === "editing"
-    ? buildEditingRegenerationPrompt(input, target)
-    : buildDraftRegenerationPrompt(input, target);
+    ? buildEditingRegenerationPrompt(input, target, input.uploadedContext)
+    : buildDraftRegenerationPrompt(input, target, input.uploadedContext);
 }
 
 // --- Regeneration schemas ---

@@ -10,6 +10,7 @@ import {
   type NoteFormat,
   type OutputMode,
   type RegenerateTarget,
+  type UploadedContext,
 } from "@/lib/types";
 import CopilotForm from "@/components/copilot-form";
 import OutputPanel from "@/components/output-panel";
@@ -137,6 +138,7 @@ function serializeResult(result: CopilotApiResponse): string {
 
 export default function CopilotApp() {
   const [form, setForm] = useState<CopilotFormData>(initialForm);
+  const [uploadedContext, setUploadedContext] = useState<UploadedContext | null>(null);
   const [result, setResult] = useState<CopilotApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -182,7 +184,7 @@ export default function CopilotApp() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, uploadedContext: uploadedContext ?? undefined }),
       });
 
       const data: unknown = await response.json();
@@ -217,7 +219,7 @@ export default function CopilotApp() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, regenerateTarget: target }),
+        body: JSON.stringify({ ...form, regenerateTarget: target, uploadedContext: uploadedContext ?? undefined }),
       });
 
       const data: unknown = await response.json();
@@ -306,7 +308,9 @@ export default function CopilotApp() {
           <CopilotForm
             form={form}
             isLoading={isLoading}
+            uploadedContext={uploadedContext}
             onChange={setForm}
+            onUploadChange={setUploadedContext}
             onSubmit={handleGenerate}
             onLoadSample={handleLoadSample}
             sampleCases={sampleCases}

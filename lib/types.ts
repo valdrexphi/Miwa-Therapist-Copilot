@@ -92,8 +92,15 @@ export type CopilotApiError = {
   error: string;
 };
 
+export type UploadedContext = {
+  filename: string;
+  fileType: string;
+  text: string;
+};
+
 export type CopilotGenerateRequest = CopilotFormData & {
   regenerateTarget?: RegenerateTarget;
+  uploadedContext?: UploadedContext;
 };
 
 export type CopilotPartialApiResponse = Partial<

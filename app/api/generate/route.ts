@@ -80,9 +80,21 @@ function isValidRequestBody(body: unknown): body is CopilotFormData {
   );
 }
 
+function isValidUploadedContext(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!value || typeof value !== "object") return false;
+  const c = value as Record<string, unknown>;
+  return (
+    typeof c.filename === "string" &&
+    typeof c.fileType === "string" &&
+    typeof c.text === "string"
+  );
+}
+
 function isValidGenerateRequest(body: unknown): body is CopilotGenerateRequest {
   if (!isValidRequestBody(body)) return false;
   const c = body as Record<string, unknown>;
+  if (!isValidUploadedContext(c.uploadedContext)) return false;
   if (c.regenerateTarget === undefined) return true;
   return isOneOf(c.regenerateTarget, REGENERATE_TARGETS);
 }
@@ -108,6 +120,12 @@ function trimFormData(body: CopilotGenerateRequest): CopilotGenerateRequest {
     presentingProblem: body.presentingProblem.trim().slice(0, 2000),
     treatmentGoal: body.treatmentGoal.trim().slice(0, 1000),
     sessionNotes: body.sessionNotes.trim().slice(0, 4000),
+    uploadedContext: body.uploadedContext
+      ? {
+          ...body.uploadedContext,
+          text: body.uploadedContext.text.trim().slice(0, 15000),
+        }
+      : undefined,
   };
 }
 

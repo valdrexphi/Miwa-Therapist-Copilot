@@ -6,7 +6,9 @@ import {
   ORIENTATIONS,
   OUTPUT_MODES,
   type CopilotFormData,
+  type UploadedContext,
 } from "@/lib/types";
+import FileUpload from "@/components/file-upload";
 
 const CHAR_LIMITS = {
   presentingProblem: 2000,
@@ -17,7 +19,9 @@ const CHAR_LIMITS = {
 type CopilotFormProps = {
   form: CopilotFormData;
   isLoading: boolean;
+  uploadedContext: UploadedContext | null;
   onChange: (updated: CopilotFormData) => void;
+  onUploadChange: (ctx: UploadedContext | null) => void;
   onSubmit: () => void;
   onLoadSample: (id: string) => void;
   sampleCases: Array<{ id: string; label: string }>;
@@ -40,7 +44,9 @@ function CharCounter({ value, limit }: { value: string; limit: number }) {
 export default function CopilotForm({
   form,
   isLoading,
+  uploadedContext,
   onChange,
+  onUploadChange,
   onSubmit,
   onLoadSample,
   sampleCases,
@@ -191,6 +197,13 @@ export default function CopilotForm({
             rows={8}
           />
         </div>
+
+        {/* File upload */}
+        <FileUpload
+          value={uploadedContext}
+          onChange={onUploadChange}
+          disabled={isLoading}
+        />
 
         {/* Actions */}
         <div className="form-actions">
